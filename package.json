@@ -1,0 +1,11 @@
+{
+  "name": "endlos-quiz-coop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Endlos-Quiz als Koop-Spiel: Raum eröffnen, Freunde beitreten, gleiche Fragen, 15 s Timer",
+  "scripts": {
+    "dev": "node dev-server.js",
+    "test": "node test/sim.js"
+  },
+  "engines": { "node": ">=18" }
+}
