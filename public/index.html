@@ -229,8 +229,18 @@ button:disabled{opacity:.5; cursor:not-allowed}
   var LS = 'endlosQuizCoop';
   var S = { code:null, pid:null, name:'', st:null, off:0, lastPoll:0, timer:null, busy:false, sentIdx:-1 };
 
-  function load(){ try { return JSON.parse(localStorage.getItem(LS)||'{}'); } catch(e){ return {}; } }
-  function save(){ try { localStorage.setItem(LS, JSON.stringify({name:S.name, code:S.code, pid:S.pid})); } catch(e){} }
+  // Name bleibt im Browser (localStorage), die Raum-Sitzung gilt pro Tab (sessionStorage):
+  // ein zweiter Tab landet deshalb auf der Startseite und kann als eigener Spieler beitreten.
+  function load(){
+    var o = {};
+    try { o.name = (JSON.parse(localStorage.getItem(LS)||'{}')).name; } catch(e){}
+    try { var r = JSON.parse(sessionStorage.getItem(LS)||'{}'); o.code = r.code; o.pid = r.pid; } catch(e){}
+    return o;
+  }
+  function save(){
+    try { localStorage.setItem(LS, JSON.stringify({name:S.name})); } catch(e){}
+    try { sessionStorage.setItem(LS, JSON.stringify({code:S.code, pid:S.pid})); } catch(e){}
+  }
 
   function api(action, body){
     return fetch('/api/room', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(Object.assign({action:action}, body))})
@@ -311,7 +321,8 @@ button:disabled{opacity:.5; cursor:not-allowed}
   function loadRooms(){
     clearTimeout(roomsT);
     if ($('vHome').hidden) return;
-    fetch('/api/rooms', {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(j){
+    fetch('/api/rooms', {cache:'no-store'}).then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(function(j){
+      $('noRooms').textContent = 'Gerade ist kein Raum offen. Eröffne einen eigenen!';
       var ul = $('rooms'); clear(ul);
       (j.rooms || []).forEach(function(r){
         var el = document.createElement('li');
@@ -325,7 +336,7 @@ button:disabled{opacity:.5; cursor:not-allowed}
         el.appendChild(info); el.appendChild(c); el.appendChild(b); ul.appendChild(el);
       });
       $('noRooms').hidden = (j.rooms || []).length > 0;
-    }).catch(function(){}).then(function(){ roomsT = setTimeout(loadRooms, 3000); });
+    }).catch(function(e){ clear($('rooms')); $('noRooms').hidden = false; $('noRooms').textContent = 'Raumliste konnte nicht geladen werden (' + e.message + ').'; }).then(function(){ roomsT = setTimeout(loadRooms, 3000); });
   }
 
   $('start').addEventListener('click', function(){
