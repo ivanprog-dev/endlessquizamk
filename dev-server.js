@@ -1,7 +1,7 @@
 'use strict';
 // Lokaler Server: statische Dateien + die beiden API-Handler. Ohne KV_REST_API_URL läuft der In-Memory-Store.
 const http = require('http'), fs = require('fs'), path = require('path'), { URL } = require('url');
-const room = require('./api/room'), state = require('./api/state');
+const room = require('./api/room'), state = require('./api/state'), rooms = require('./api/rooms');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css' };
 
 function wrap(res) { res.status = (c) => { res.statusCode = c; return res; }; res.json = (o) => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(o)); }; return res; }
@@ -9,6 +9,7 @@ function wrap(res) { res.status = (c) => { res.statusCode = c; return res; }; re
 const server = http.createServer((req, res) => {
   const u = new URL(req.url, 'http://x'); wrap(res);
   if (u.pathname === '/api/state') { req.query = Object.fromEntries(u.searchParams); return state(req, res); }
+  if (u.pathname === '/api/rooms') return rooms(req, res);
   if (u.pathname === '/api/room') {
     let b = ''; req.on('data', (d) => (b += d)); req.on('end', () => { req.body = b; room(req, res); }); return;
   }

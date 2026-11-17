@@ -3,7 +3,7 @@ const g = require('../lib/game');
 
 const actions = {
   create: g.createRoom, join: g.joinRoom, start: g.startGame,
-  answer: g.answer, next: g.next, again: g.again,
+  answer: g.answer, next: g.next, again: g.again, leave: g.leaveRoom,
 };
 
 module.exports = async (req, res) => {

@@ -94,28 +94,72 @@ button:disabled{opacity:.5; cursor:not-allowed}
 .ans.bad{border-color:var(--bad); background:var(--bad-bg)}
 .ans.bad .key{background:var(--bad); border-color:var(--bad); color:var(--surface)}
 .ans.dim{opacity:.5}
+.sub{margin:4px 0 0; color:var(--muted)}
+.hint{font-size:13px; color:var(--muted)}
+.check{display:flex; align-items:center; gap:8px; font-size:14px; letter-spacing:0; text-transform:none; color:var(--ink); font-weight:400; cursor:pointer}
+.check input{width:auto}
+.rooms{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px}
+.rooms li{display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--line); border-radius:12px}
+.rooms .info{flex:1; min-width:0}
+.rooms .t{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.rooms .s{font-size:13px; color:var(--muted)}
+.rooms .c{font-family:var(--font-mono); font-size:12px; letter-spacing:.12em; color:var(--muted)}
+.empty{padding:14px; text-align:center; color:var(--muted); border:1.5px dashed var(--line); border-radius:12px; font-size:14px}
+.big{font-family:var(--font-display); font-weight:700; font-size:24px; line-height:1.15}
+.big.ok{color:var(--ok)} .big.bad{color:var(--bad)} .big.none{color:var(--warn)}
+.net{position:fixed; top:0; left:0; right:0; padding:6px 12px; text-align:center; font-size:13px; font-weight:600; background:var(--warn); color:#fff; z-index:5}
+.toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%); max-width:min(92vw,420px); padding:10px 16px; border-radius:12px; background:var(--ink); color:var(--bg); font-weight:600; font-size:14px; z-index:6; box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.podium{display:flex; justify-content:center; align-items:flex-end; gap:10px; margin:6px 0 4px}
+.podium .pl{flex:1; max-width:150px; text-align:center; padding:10px 6px 8px; border:1px solid var(--line); border-radius:12px; background:var(--bg)}
+.podium .pl.first{padding-top:22px; border-color:var(--accent)}
+.podium .m{font-size:26px; line-height:1}
+.podium .n{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.podium .p{font-family:var(--font-mono); font-weight:700; font-size:14px}
+.bar.low{animation:pulse .8s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.55}}
+@media (prefers-reduced-motion:reduce){ .bar.low{animation:none} }
 .foot{font-size:12px; color:var(--muted); text-align:center}
 @media (max-width:480px){ .answers{grid-template-columns:1fr} .card{padding:16px} .codebox{font-size:38px} }
 @media (prefers-reduced-motion:reduce){ .ans{transition:none} }
 </style>
 </head>
 <body>
+<div class="net" id="net" hidden>Verbindung unterbrochen – versuche es erneut …</div>
+<div class="toast" id="toast" hidden></div>
 <div class="app">
+
+  <!-- Laden -->
+  <section id="vLoad" class="stack" hidden><div class="empty">Verbinde …</div></section>
 
   <!-- Start -->
   <section id="vHome" class="stack" hidden>
-    <h1>Endlos-Quiz <span style="color:var(--accent)">Koop</span></h1>
+    <div>
+      <h1>Endlos-Quiz <span style="color:var(--accent)">Koop</span></h1>
+      <p class="sub">Gleiche Fragen, 15 Sekunden, wer ist schneller?</p>
+    </div>
     <div class="card stack">
       <div><label for="name">Dein Name</label><input id="name" maxlength="16" autocomplete="nickname" placeholder="z. B. Max"></div>
+    </div>
+    <div class="card stack">
+      <h2>Offene Räume</h2>
+      <ul class="rooms" id="rooms"></ul>
+      <div class="empty" id="noRooms">Gerade ist kein Raum offen. Eröffne einen eigenen!</div>
+    </div>
+    <div class="card stack">
+      <h2>Neuen Raum eröffnen</h2>
       <div class="row">
-        <div style="flex:1;min-width:140px"><label for="count">Fragen</label>
+        <div style="flex:1;min-width:140px"><label for="count">Anzahl Fragen</label>
           <select id="count"><option>10</option><option>15</option><option>20</option></select></div>
         <button class="primary" id="create" style="align-self:end">Raum eröffnen</button>
       </div>
+      <label class="check"><input type="checkbox" id="priv"> Privat (nicht in der Liste, Beitritt nur mit Code)</label>
     </div>
     <div class="card stack">
-      <div><label for="joinCode">Raumcode</label><input id="joinCode" class="code" maxlength="4" placeholder="ABCD" autocomplete="off"></div>
-      <button class="ghost" id="join">Beitreten</button>
+      <h2>Mit Code beitreten</h2>
+      <div class="row">
+        <input id="joinCode" class="code" maxlength="4" placeholder="ABCD" autocomplete="off" style="flex:1;min-width:120px">
+        <button class="ghost" id="join">Beitreten</button>
+      </div>
     </div>
     <div class="err" id="homeErr" role="alert"></div>
   </section>
@@ -125,12 +169,12 @@ button:disabled{opacity:.5; cursor:not-allowed}
     <div class="card stack">
       <div class="muted" style="text-align:center">Raumcode – gib ihn deinen Freunden</div>
       <div class="codebox" id="lobbyCode"></div>
-      <button class="ghost" id="copy">Einladungslink kopieren</button>
+      <button class="ghost" id="copy">Einladungslink teilen</button>
     </div>
     <div class="card stack">
       <h2>Spieler <span class="muted" id="pcount"></span></h2>
       <ul class="plist" id="lobbyPlayers"></ul>
-      <div class="muted" id="lobbyHint"></div>
+      <div class="hint" id="lobbyHint"></div>
       <button class="primary" id="start" hidden>Spiel starten</button>
     </div>
     <div class="err" id="lobbyErr" role="alert"></div>
@@ -150,19 +194,22 @@ button:disabled{opacity:.5; cursor:not-allowed}
     </section>
     <div class="answers" id="answers"></div>
     <div class="card stack" id="panel">
-      <div id="panelMsg" style="font-weight:600"></div>
+      <div id="panelMsg" class="big"></div>
+      <div class="hint" id="panelSub"></div>
       <ul class="plist" id="gamePlayers"></ul>
       <div class="row" id="revealRow" hidden>
         <button class="primary" id="next">Weiter</button>
         <a class="ghost" id="wiki" target="_blank" rel="noopener" style="text-decoration:none;padding:8px 14px;border-radius:10px;border:1.5px solid var(--line);color:var(--ink);font-weight:600">Wikipedia ↗</a>
       </div>
     </div>
+    <button class="ghost" id="leave3" style="align-self:flex-start">Raum verlassen</button>
   </section>
 
   <!-- Ende -->
   <section id="vFinal" class="stack" hidden>
     <div class="card stack">
       <h2 id="finalTitle"></h2>
+      <div class="podium" id="podium"></div>
       <ul class="plist" id="finalPlayers"></ul>
     </div>
     <div class="row">
@@ -191,7 +238,7 @@ button:disabled{opacity:.5; cursor:not-allowed}
   }
 
   function show(id){
-    ['vHome','vLobby','vGame','vFinal'].forEach(function(v){ $(v).hidden = (v!==id); });
+    ['vLoad','vHome','vLobby','vGame','vFinal'].forEach(function(v){ $(v).hidden = (v!==id); });
   }
   function li(parent, cls, parts){
     var el = document.createElement('li'); if (cls) el.className = cls;
@@ -200,6 +247,12 @@ button:disabled{opacity:.5; cursor:not-allowed}
     });
     parent.appendChild(el); return el;
   }
+  var toastT;
+  function toast(msg){
+    var t = $('toast'); t.textContent = msg; t.hidden = false;
+    clearTimeout(toastT); toastT = setTimeout(function(){ t.hidden = true; }, 3500);
+  }
+  function setNet(bad){ $('net').hidden = !bad; }
   function clear(el){ while (el.firstChild) el.removeChild(el.firstChild); }
 
   /* ---------- Start / Beitreten ---------- */
@@ -209,37 +262,72 @@ button:disabled{opacity:.5; cursor:not-allowed}
     poll();
   }
   function leave(){
-    clearTimeout(S.timer); S.code = null; S.pid = null; S.st = null; save();
+    var code = S.code, pid = S.pid;
+    clearTimeout(S.timer); S.code = null; S.pid = null; S.st = null; save(); setNet(false);
+    if (code && pid){ try { fetch('/api/room', {method:'POST', keepalive:true, headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'leave', code:code, pid:pid})}).catch(function(){}); } catch(e){} }
     try { history.replaceState(null, '', location.pathname); } catch(e){}
-    $('joinCode').value = ''; show('vHome');
+    $('joinCode').value = ''; show('vHome'); loadRooms();
   }
   function getName(){
     S.name = $('name').value.trim(); save();
-    if (!S.name){ $('homeErr').textContent = 'Bitte gib einen Namen ein.'; $('name').focus(); return null; }
+    if (!S.name){ $('homeErr').textContent = 'Bitte gib zuerst deinen Namen ein.'; $('name').focus(); return null; }
     $('homeErr').textContent = ''; return S.name;
+  }
+  function busy(btn, on){ btn.disabled = on; }
+  function joinCode(code, btn){
+    var n = getName(); if (!n) return;
+    if (btn) busy(btn, true);
+    api('join', {code:code, name:n}).then(function(r){ enter(r.code, r.pid); })
+      .catch(function(e){ $('homeErr').textContent = e.message; loadRooms(); })
+      .then(function(){ if (btn) busy(btn, false); });
   }
   $('create').addEventListener('click', function(){
     var n = getName(); if (!n) return;
-    api('create', {name:n, count:$('count').value}).then(function(r){ enter(r.code, r.pid); })
-      .catch(function(e){ $('homeErr').textContent = e.message; });
+    try { localStorage.setItem(LS + ':count', $('count').value); } catch(e){}
+    busy($('create'), true);
+    api('create', {name:n, count:$('count').value, isPublic:!$('priv').checked}).then(function(r){ enter(r.code, r.pid); })
+      .catch(function(e){ $('homeErr').textContent = e.message; })
+      .then(function(){ busy($('create'), false); });
   });
   $('join').addEventListener('click', function(){
-    var n = getName(); if (!n) return;
     var c = $('joinCode').value.trim().toUpperCase();
     if (c.length !== 4){ $('homeErr').textContent = 'Der Raumcode hat 4 Buchstaben.'; return; }
-    api('join', {code:c, name:n}).then(function(r){ enter(r.code, r.pid); })
-      .catch(function(e){ $('homeErr').textContent = e.message; });
+    joinCode(c, $('join'));
   });
   $('joinCode').addEventListener('keydown', function(e){ if (e.key==='Enter') $('join').click(); });
+  $('name').addEventListener('keydown', function(e){ if (e.key==='Enter') $('create').click(); });
   $('leave1').addEventListener('click', leave);
   $('leave2').addEventListener('click', leave);
+  $('leave3').addEventListener('click', function(){ if (confirm('Raum wirklich verlassen? Du kannst nicht wieder einsteigen, solange das Spiel läuft.')) leave(); });
   $('copy').addEventListener('click', function(){
     var url = location.origin + location.pathname + '#' + S.code;
-    var b = $('copy');
-    (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function(){ b.textContent = 'Kopiert ✓'; })
-      .catch(function(){ b.textContent = url; });
-    setTimeout(function(){ b.textContent = 'Einladungslink kopieren'; }, 2500);
+    if (navigator.share){ navigator.share({title:'Endlos-Quiz Koop', text:'Komm in meinen Quiz-Raum ' + S.code, url:url}).catch(function(){}); return; }
+    (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject())
+      .then(function(){ toast('Link kopiert'); }).catch(function(){ toast(url); });
   });
+
+  /* ---------- Offene Räume ---------- */
+  var roomsT;
+  function loadRooms(){
+    clearTimeout(roomsT);
+    if ($('vHome').hidden) return;
+    fetch('/api/rooms', {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(j){
+      var ul = $('rooms'); clear(ul);
+      (j.rooms || []).forEach(function(r){
+        var el = document.createElement('li');
+        var info = document.createElement('div'); info.className = 'info';
+        var t = document.createElement('div'); t.className = 't'; t.textContent = 'Raum von ' + r.host;
+        var s = document.createElement('div'); s.className = 's'; s.textContent = r.players + '/' + r.max + ' Spieler · ' + r.count + ' Fragen';
+        info.appendChild(t); info.appendChild(s);
+        var c = document.createElement('span'); c.className = 'c'; c.textContent = r.code;
+        var b = document.createElement('button'); b.className = 'primary'; b.textContent = r.players >= r.max ? 'Voll' : 'Beitreten'; b.disabled = r.players >= r.max;
+        b.addEventListener('click', function(){ joinCode(r.code, b); });
+        el.appendChild(info); el.appendChild(c); el.appendChild(b); ul.appendChild(el);
+      });
+      $('noRooms').hidden = (j.rooms || []).length > 0;
+    }).catch(function(){}).then(function(){ roomsT = setTimeout(loadRooms, 3000); });
+  }
+
   $('start').addEventListener('click', function(){
     api('start', {code:S.code, pid:S.pid}).then(poll).catch(function(e){ $('lobbyErr').textContent = e.message; });
   });
@@ -253,7 +341,9 @@ button:disabled{opacity:.5; cursor:not-allowed}
     fetch('/api/state?code=' + encodeURIComponent(S.code) + '&pid=' + encodeURIComponent(S.pid), {cache:'no-store'})
       .then(function(r){ return r.json().then(function(j){ if (!r.ok){ var e = new Error(j.error); e.status = r.status; throw e; } return j; }); })
       .then(function(st){
+        if (!S.code) return;                       // zwischenzeitlich verlassen
         var t1 = Date.now();
+        setNet(false);
         S.off = st.now - (t0 + t1)/2;             // Uhrenversatz Server - Client
         S.st = st; render();
         S.timer = setTimeout(poll, 800);
@@ -261,8 +351,10 @@ button:disabled{opacity:.5; cursor:not-allowed}
       .catch(function(e){
         if (e.status === 404 || e.status === 403){
           var msg = e.status === 404 ? 'Der Raum existiert nicht mehr.' : 'Du bist in diesem Raum nicht angemeldet.';
-          leave(); $('homeErr').textContent = msg;
-        } else S.timer = setTimeout(poll, 2000);   // Netzwerkfehler: weiter versuchen
+          S.code = null; S.pid = null; S.st = null; save(); setNet(false);
+          try { history.replaceState(null, '', location.pathname); } catch(x){}
+          show('vHome'); loadRooms(); $('homeErr').textContent = msg;
+        } else { setNet(true); S.timer = setTimeout(poll, 2000); }   // Netzwerkfehler: weiter versuchen
       });
   }
 
@@ -331,7 +423,8 @@ button:disabled{opacity:.5; cursor:not-allowed}
     var ul = $('gamePlayers'); clear(ul);
     if (!reveal){
       var open = st.players.filter(function(p){ return !p.answered && p.active; }).length;
-      $('panelMsg').textContent = mine == null ? 'Wähle deine Antwort.' : (open ? 'Antwort abgegeben. Warte auf ' + open + ' Spieler …' : 'Alle haben geantwortet …');
+      $('panelMsg').className = 'big'; $('panelSub').textContent = '';
+      $('panelMsg').textContent = mine == null ? 'Wähle deine Antwort' : (open ? 'Abgegeben – warte auf ' + open + (open === 1 ? ' Spieler' : ' Spieler') + ' …' : 'Alle haben geantwortet …');
       st.players.forEach(function(p){
         li(ul, (p.id===st.me?'me ':'') + (p.active?'':'off'), [['mark' + (p.answered?' done':''), p.answered?'✓':'·'], ['nm', p.name], ['sc', String(p.score)]]);
       });
@@ -339,7 +432,13 @@ button:disabled{opacity:.5; cursor:not-allowed}
       lastKey = '';
     } else {
       var me = st.results.filter(function(r){ return r.id===st.me; })[0];
-      $('panelMsg').textContent = !me || me.choice < 0 ? 'Keine Antwort abgegeben.' : (me.ok ? 'Richtig! +' + me.pts + ' Punkte' : 'Falsch. Richtig ist: ' + q.opts[q.correct]);
+      var pm = $('panelMsg');
+      if (!me || me.choice < 0){ pm.textContent = 'Keine Antwort abgegeben'; pm.className = 'big none'; }
+      else if (me.ok){ pm.textContent = 'Richtig! +' + me.pts; pm.className = 'big ok'; }
+      else { pm.textContent = 'Leider falsch'; pm.className = 'big bad'; }
+      var ranked = st.players.slice().sort(function(a,b){ return b.score - a.score; });
+      var rank = ranked.map(function(p){ return p.id; }).indexOf(st.me) + 1;
+      $('panelSub').textContent = (me && me.ok ? '' : 'Richtig ist: ' + q.opts[q.correct] + ' · ') + (st.players.length > 1 ? 'Platz ' + rank + ' von ' + st.players.length + ' · ' : '') + ranked[rank-1].score + ' Punkte';
       var res = st.results.slice().sort(function(a,b){ return b.pts - a.pts || (a.ms==null) - (b.ms==null) || a.ms - b.ms; });
       var byId = {}; st.players.forEach(function(p){ byId[p.id] = p; });
       res.forEach(function(r){
@@ -358,15 +457,25 @@ button:disabled{opacity:.5; cursor:not-allowed}
   function renderFinal(st){
     show('vFinal');
     var ps = st.players.slice().sort(function(a,b){ return b.score - a.score; });
-    var top = ps[0];
-    $('finalTitle').textContent = ps.length > 1 ? top.name + ' gewinnt!' : 'Geschafft!';
+    var meRank = ps.map(function(p){ return p.id; }).indexOf(st.me) + 1;
+    $('finalTitle').textContent = ps.length > 1 ? (ps[0].id === st.me ? 'Du hast gewonnen!' : ps[0].name + ' gewinnt!') : 'Geschafft!';
+    var pod = $('podium'); clear(pod);
+    var medals = ['🥇', '🥈', '🥉'];
+    // Podest-Reihenfolge: 2., 1., 3.
+    [1, 0, 2].forEach(function(i){
+      var p = ps[i]; if (!p) return;
+      var d = document.createElement('div'); d.className = 'pl' + (i === 0 ? ' first' : '');
+      [['m', medals[i]], ['n', p.name], ['p', String(p.score)]].forEach(function(x){
+        var s = document.createElement('div'); s.className = x[0]; s.textContent = x[1]; d.appendChild(s);
+      });
+      pod.appendChild(d);
+    });
     var ul = $('finalPlayers'); clear(ul);
-    var medals = ['1.', '2.', '3.'];
     ps.forEach(function(p, i){
-      li(ul, p.id===st.me?'me':'', [['tag', medals[i] || (i+1)+'.'], ['nm', p.name], ['pts', p.right + '/' + st.count], ['sc', String(p.score)]]);
+      li(ul, p.id===st.me?'me':'', [['tag', (i+1)+'.'], ['nm', p.name], ['pts', p.right + '/' + st.count + ' richtig'], ['sc', String(p.score)]]);
     });
     $('again').hidden = !isHost(st);
-    $('finalHint').textContent = isHost(st) ? '' : 'Der Host kann eine neue Runde starten.';
+    $('finalHint').textContent = (ps.length > 1 ? 'Du bist Platz ' + meRank + '. ' : '') + (isHost(st) ? '' : 'Der Host kann eine neue Runde starten – bleib einfach hier.');
   }
 
   /* ---------- Timer ---------- */
@@ -403,9 +512,13 @@ button:disabled{opacity:.5; cursor:not-allowed}
   /* ---------- Start ---------- */
   var saved = load();
   $('name').value = saved.name || ''; S.name = saved.name || '';
+  try { var c = localStorage.getItem(LS + ':count'); if (c) $('count').value = c; } catch(e){}
   var hash = (location.hash || '').replace('#','').toUpperCase().slice(0,4);
-  if (saved.code && saved.pid && (!hash || hash === saved.code)){ S.code = saved.code; S.pid = saved.pid; show('vHome'); poll(); }
-  else { show('vHome'); if (/^[A-Z]{4}$/.test(hash)) { $('joinCode').value = hash; $('name').focus(); } }
+  if (saved.code && saved.pid && (!hash || hash === saved.code)){ S.code = saved.code; S.pid = saved.pid; show('vLoad'); poll(); }
+  else {
+    show('vHome'); loadRooms();
+    if (/^[A-Z]{4}$/.test(hash)){ $('joinCode').value = hash; $('name').focus(); $('homeErr').textContent = S.name ? '' : 'Gib deinen Namen ein und klicke auf „Beitreten“.'; }
+  }
 })();
 </script>
 </body>

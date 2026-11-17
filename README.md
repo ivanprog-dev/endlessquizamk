@@ -12,11 +12,13 @@ Raum eröffnen, Code/Link teilen, gleiche Fragen für alle, 15 s pro Frage. Soba
 
 ## Aufbau
 - `public/index.html` – gesamter Client (Start, Lobby, Spiel, Endstand), pollt `/api/state` alle 0,8 s.
-- `api/room.js` – POST-Aktionen: create, join, start, answer, next, again.
+- `api/room.js` – POST-Aktionen: create, join, start, answer, next, again, leave.
+- `api/rooms.js` – GET Liste offener (öffentlicher) Lobbys.
 - `api/state.js` – GET Spielzustand; deckt lazy auf (alle geantwortet oder Zeit um).
 - `lib/game.js` – Spiellogik, Punkte, Fragenauswahl. `lib/store.js` – Redis über REST. `lib/questions.json` – 4225 Fragen (nur serverseitig, Lösungen gehen erst beim Aufdecken an die Clients).
 
 ## Regeln
 - 10/15/20 Fragen, Schwierigkeit steigt von Stufe 2 bis 8, Kategorien wechseln.
 - Punkte: richtig = 100 + 15·(Stufe−1) + bis zu 60 Schnelligkeitsbonus; falsch/keine Antwort = 0.
+- Räume sind standardmäßig öffentlich (Liste „Offene Räume“), mit „Privat“ nur per Code. Verlässt der Host den Raum, wird der älteste Spieler Host; der letzte Spieler löscht den Raum.
 - Max. 8 Spieler, Beitritt nur in der Lobby, Räume laufen nach 6 h ab.
